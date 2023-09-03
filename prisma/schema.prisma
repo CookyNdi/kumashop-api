@@ -1,0 +1,240 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id             String           @id @default(uuid())
+  name           String
+  email          String           @unique
+  phone_number   String           @unique
+  birth_date     String
+  gender         String
+  profile_image  String
+  password       String
+  pin            Int
+  balance        Int
+  createdAt      DateTime         @default(now())
+  Reviews        Reviews[]
+  Discusion      Discusion[]
+  Address        Address[]
+  Cart           Cart[]
+  Wishlist       Wishlist[]
+  Purchase_List  Purchase_List[]
+  Search_History Search_History[]
+  Visit_History  Visit_History[]
+}
+
+model Store {
+  id              String          @id @default(cuid())
+  name            String          @unique
+  domain_name     String          @unique
+  oprational_hour String
+  address         String
+  profile_image   String
+  createdAt       DateTime        @default(now())
+  Products        Products[]
+  Cart            Cart[]
+  Purchase_List   Purchase_List[]
+}
+
+model Products {
+  id                 String               @id @default(uuid())
+  store_id           String
+  name               String
+  description        String
+  stock              Int
+  page_views         Int
+  price              Int
+  createdAt          DateTime             @default(now())
+  store              Store                @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  Reviews            Reviews[]
+  Discusion          Discusion[]
+  Product_Images     Product_Images[]
+  Product_Type_Title Product_Type_Title[]
+  Cart               Cart[]
+  Wishlist           Wishlist[]
+  Product_Categories Product_Categories[]
+  Product_Keyword    Product_Keyword[]
+  Visit_History      Visit_History[]
+}
+
+// Product Table
+
+model Reviews {
+  id             String   @id @default(cuid())
+  product_id     String
+  user_id        String
+  comment        String
+  star           Int
+  parent_comment String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  product        Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  user           Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model Discusion {
+  id             String   @id @default(cuid())
+  product_id     String
+  user_id        String
+  comment        String
+  parent_comment String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  product        Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  user           Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model Product_Images {
+  id         String   @id @default(cuid())
+  product_id String
+  name       String
+  url        String
+  product    Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+}
+
+model Product_Type_Title {
+  id           String         @id @default(cuid())
+  product_id   String
+  title        String
+  product      Products       @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  Product_Type Product_Type[]
+}
+
+model Product_Type {
+  id                    String             @id @default(cuid())
+  product_pype_title_id String
+  name                  String
+  Product_Type_Title    Product_Type_Title @relation(fields: [product_pype_title_id], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id                 String               @id @default(cuid())
+  name               String
+  Product_Categories Product_Categories[]
+}
+
+model Product_Categories {
+  product_id  String
+  category_id String
+  product     Products @relation(fields: [product_id], references: [id])
+  category    Category @relation(fields: [category_id], references: [id])
+
+  @@id([product_id, category_id])
+}
+
+model Keyword {
+  id              String            @id @default(cuid())
+  name            String
+  Product_Keyword Product_Keyword[]
+}
+
+model Product_Keyword {
+  product_id String
+  keyword_id String
+  product    Products @relation(fields: [product_id], references: [id])
+  keyword    Keyword  @relation(fields: [keyword_id], references: [id])
+
+  @@id([product_id, keyword_id])
+}
+
+// User Table
+
+model Address {
+  id             String          @id @default(cuid())
+  user_id        String
+  recipient_name String
+  address        String
+  detail_address String
+  note           String
+  phone_number   String
+  user           Users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  Purchase_List  Purchase_List[]
+}
+
+model Cart {
+  user_id         String
+  product_id      String
+  store_id        String
+  purchase_amount Int
+  user            Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  product         Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  store           Store    @relation(fields: [store_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, product_id])
+}
+
+model Wishlist {
+  user_id    String
+  product_id String
+  user       Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  product    Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, product_id])
+}
+
+model Purchase_List {
+  invoice               String                  @id
+  user_id               String
+  store_id              String
+  kurir_id              String
+  address_id            String
+  status                String
+  no_resi               String
+  payment_method        String
+  createdAt             DateTime                @default(now())
+  user                  Users                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  store                 Store                   @relation(fields: [store_id], references: [id], onDelete: NoAction)
+  address               Address                 @relation(fields: [address_id], references: [id], onDelete: NoAction)
+  Payment_Details       Payment_Details[]
+  Detail_Purchase_tatus Detail_Purchase_tatus[]
+}
+
+model Payment_Details {
+  id                    String        @id @default(cuid())
+  invoice_purchase      String
+  product_id            String
+  total_item            String
+  invoice_purchase_list Purchase_List @relation(fields: [invoice_purchase], references: [invoice], onDelete: Cascade)
+}
+
+model Detail_Status {
+  id                    String                  @id @default(cuid())
+  status                String
+  description           String
+  Detail_Purchase_tatus Detail_Purchase_tatus[]
+}
+
+model Detail_Purchase_tatus {
+  invoice_purchase      String
+  details_status_id     String
+  createAt              DateTime      @default(now())
+  invoice_purchase_list Purchase_List @relation(fields: [invoice_purchase], references: [invoice], onDelete: Cascade)
+  detail_status         Detail_Status @relation(fields: [details_status_id], references: [id], onDelete: NoAction)
+
+  @@id([invoice_purchase, details_status_id])
+}
+
+model Search_History {
+  id           String @id @default(cuid())
+  user_id      String
+  query_search String
+  user         Users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model Visit_History {
+  user_id    String
+  product_id String
+  user       Users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  product    Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, product_id])
+}
