@@ -19,7 +19,7 @@ model Users {
   gender         String
   profile_image  String
   password       String
-  pin            Int
+  pin            String
   balance        Int
   createdAt      DateTime         @default(now())
   Reviews        Reviews[]

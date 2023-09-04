@@ -1,0 +1,21 @@
+# Get All User
+GET http://localhost:5000/users
+
+###
+#Get User By Id
+GET http://localhost:5000/users/be97fafe-4a58-4464-a746-49dd07667c10
+
+###
+#Register user
+POST http://localhost:5000/users
+Content-Type: application/json
+
+{
+  "name": "ndii",
+  "email": "ndii@gmail.com",
+  "phone_number": "081297525900",
+  "birth_date": "09-maret-2001",
+  "password": "DidYouKnow727?!",
+  "confPassword": "DidYouKnow727?!",
+  "pin": "123456"
+}
