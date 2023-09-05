@@ -1,7 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import userRoutes from "./routes/users/UsersManagement.js";
+import userGeneralRoutes from "./routes/users/UsersGeneral.js";
+import userAuthRoutes from "./routes/users/UsersAuth.js";
 import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 dotenv.config();
@@ -37,7 +38,8 @@ app.use(
   })
 );
 
-app.use(userRoutes);
+app.use(userGeneralRoutes);
+app.use(userAuthRoutes);
 
 app.listen(port, () => {
   console.log(`server running perfectly at port ${port}`);

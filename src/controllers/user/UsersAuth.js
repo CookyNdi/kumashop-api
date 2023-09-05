@@ -3,37 +3,9 @@ import argon2 from "argon2";
 
 const prisma = new PrismaClient();
 
-
-
-export const updateUser = async (req, res) => {
+export const resgisterUser = async (req, res) => {
   try {
-    const user = await prisma.users.findUnique({
-      where: { id: req.params.id },
-    });
-    if (!user) return res.status(404).json({ msg: "User Tidak Di Temukan" });
-
-    let fileName = "";
-
-    if (req.files === null) {
-      fileName = user.profile_image;
-    } else {
-      const file = req.files.file;
-      const fileSize = file.data.length;
-      const ext = path.extname(file.name);
-      fileName = file.md5 + ext;
-      const allowedType = [".png", ".jpg", ".jpeg", ".webp"];
-      if (!allowedType.includes(ext.toLowerCase()))
-        return res.status(422).json({ msg: "Gambar yang anda masukan harus berformat (png, jpg, jpeg, webp)" });
-      if (fileSize > 2000000) return res.status(422).json({ msg: "Image must be less than 2mb" });
-      if (user.profile_image !== "default.jpg") {
-        const filePath = `./public/Users/profile-images/${user.profile_image}`;
-        fs.unlinkSync(filePath);
-      }
-      file.mv(`./public/Users/profile-images/${fileName}`, (err) => {
-        if (err) return res.status(500).json({ msg: err.message });
-      });
-    }
-    const { name, email, phone_number, birth_date, gender, password, confPassword, pin } = req.body;
+    const { name, email, phone_number, birth_date, password, confPassword, pin } = req.body;
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const phoneNumberRegex = /^\d{10,14}$/;
     const passwordPattern = /^(?=.*[A-Z])(?=.*[!@#$%^&*])[A-Z!@#$%^&*].{7,}$/;
@@ -99,20 +71,20 @@ export const updateUser = async (req, res) => {
     const hashPassword = await argon2.hash(password);
     const hashPin = await argon2.hash(pin);
 
-    await prisma.users.update({
+    await prisma.users.create({
       data: {
         name: name,
         email: email,
         phone_number: phone_number,
         birth_date: birth_date,
-        gender: gender,
-        profile_image: fileName,
+        gender: "",
+        profile_image: "default.jpg",
         password: hashPassword,
         pin: hashPin,
         balance: 0,
       },
     });
-    res.status(200).json("Akun Berhasil Di Perbarui...");
+    res.status(200).json("Akun Berhasil Dibuat...");
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
