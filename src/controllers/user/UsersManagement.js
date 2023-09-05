@@ -5,85 +5,24 @@ import fs from "fs";
 
 const prisma = new PrismaClient();
 
-export const updateUser = async (req, res) => {
+export const updateBasicData = async (req, res) => {
   try {
-    const { name, email, phone_number, birth_date, gender, password, confPassword, pin } = req.body;
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const phoneNumberRegex = /^\d{10,14}$/;
-    const passwordPattern = /^(?=.*[A-Z])(?=.*[!@#$%^&*])[A-Z!@#$%^&*].{7,}$/;
-    const pinRegex = /^\d{6}$/;
-
-    if (!emailRegex.test(email))
-      return res.status(400).send({
-        type: "Not Email",
-        errorMessage: "Email Tidak Sesuai",
-      });
-
-    if (!phoneNumberRegex.test(phone_number))
-      return res.status(400).send({
-        type: "Phone Number Invalid",
-        errorMessage: "Nomor Hp yang anda masukan tidak valid",
-      });
-
-    const isEmailTaken = await prisma.users.findUnique({
-      where: { email: email },
-      select: {
-        email: true,
+    const { name, birth_date, gender } = req.body;
+    const user = await prisma.users.findUnique({
+      where: {
+        id: req.params.id,
       },
     });
-
-    const isPhoneNumberTaken = await prisma.users.findUnique({
-      where: { phone_number: phone_number },
-      select: {
-        phone_number: true,
-      },
-    });
-
-    if (isEmailTaken)
-      return res.status(400).send({
-        type: "Email Taken",
-        errorMessage: "Email Ini Sudah Terdaftar",
-      });
-
-    if (isPhoneNumberTaken)
-      return res.status(400).send({
-        type: "Phone Number Taken",
-        errorMessage: "Nomor Hp Ini Sudah Terdaftar",
-      });
-
-    if (password !== confPassword)
-      return res.status(400).send({
-        type: "Password Not Match",
-        errorMessage: "Password Dan Confirm Password Tidak Sesuai",
-      });
-
-    if (!passwordPattern.test(password))
-      return res.status(400).send({
-        type: "Password Pattern",
-        errorMessage:
-          "Panjang password minimal 8 karakter, yang berisikan huruf awal kapital, dan minimal harus memiliki satu simbol",
-      });
-
-    if (!pinRegex.test(pin))
-      return res.status(400).send({
-        type: "Pin Invalid",
-        errorMessage: "Pin yang anda masukan tidak valid",
-      });
-
-    const hashPassword = await argon2.hash(password);
-    const hashPin = await argon2.hash(pin);
+    if (!user) return res.status(404).json({ msg: "User tidak ditemukan" });
 
     await prisma.users.update({
+      where: {
+        id: user.id,
+      },
       data: {
         name: name,
-        email: email,
-        phone_number: phone_number,
         birth_date: birth_date,
         gender: gender,
-        profile_image: fileName,
-        password: hashPassword,
-        pin: hashPin,
-        balance: 0,
       },
     });
     res.status(200).json("Akun Berhasil Di Perbarui...");
@@ -136,10 +75,184 @@ export const updateProfileImages = async (req, res) => {
   }
 };
 
-export const updatePassword = async (req, res) => {};
+export const updateEmail = async (req, res) => {
+  try {
+    const email = req.body.email;
+    const user = await prisma.users.findUnique({
+      where: {
+        id: req.params.id,
+      },
+    });
+    if (!user) return res.status(404).json({ msg: "User tidak ditemukan" });
 
-export const updatePin = async (req, res) => {};
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email))
+      return res.status(400).send({
+        type: "Not Email",
+        errorMessage: "Email Tidak Sesuai",
+      });
 
-export const updatePhoneNumber = async (req, res) => {};
+    const isEmailTaken = await prisma.users.findUnique({
+      where: { email: email },
+      select: {
+        email: true,
+      },
+    });
+
+    if (isEmailTaken)
+      return res.status(400).send({
+        type: "Email Taken",
+        errorMessage: "Email Ini Sudah Terdaftar",
+      });
+
+    await prisma.users.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        email: email,
+      },
+    });
+    res.status(200).json("Email Berhasil Di Perbarui...");
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
+export const updatePhoneNumber = async (req, res) => {
+  try {
+    const phone_number = req.body.phone_number;
+
+    const user = await prisma.users.findUnique({
+      where: {
+        id: req.params.id,
+      },
+    });
+    if (!user) return res.status(404).json({ msg: "User tidak ditemukan" });
+
+    const phoneNumberRegex = /^\d{10,14}$/;
+
+    if (!phoneNumberRegex.test(phone_number))
+      return res.status(400).send({
+        type: "Phone Number Invalid",
+        errorMessage: "Nomor Hp yang anda masukan tidak valid",
+      });
+
+    const isPhoneNumberTaken = await prisma.users.findUnique({
+      where: { phone_number: phone_number },
+      select: {
+        phone_number: true,
+      },
+    });
+
+    if (isPhoneNumberTaken)
+      return res.status(400).send({
+        type: "Phone Number Taken",
+        errorMessage: "Nomor Hp Ini Sudah Terdaftar",
+      });
+
+    await prisma.users.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        phone_number: phone_number,
+      },
+    });
+    res.status(200).json("Nomor Hp Berhasil Di Perbarui...");
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
+export const updatePassword = async (req, res) => {
+  try {
+    const { password, confPassword, oldPassword } = req.body;
+
+    const user = await prisma.users.findUnique({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    const passwordPattern = /^(?=.*[A-Z])(?=.*[!@#$%^&*])[A-Z!@#$%^&*].{7,}$/;
+    if (password !== confPassword)
+      return res.status(400).send({
+        type: "Password Not Match",
+        errorMessage: "Password Dan Confirm Password Tidak Sesuai",
+      });
+
+    if (!passwordPattern.test(password))
+      return res.status(400).send({
+        type: "Password Pattern",
+        errorMessage:
+          "Panjang password minimal 8 karakter, yang berisikan huruf awal kapital, dan minimal harus memiliki satu simbol",
+      });
+
+    if (user.password !== oldPassword) {
+      return res.status(400).send({
+        type: "Password Not Match",
+        errorMessage: "Password lama yang anda masukan salah",
+      });
+    }
+
+    const hashPassword = await argon2.hash(password);
+    await prisma.users.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        password: hashPassword,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
+export const updatePin = async (req, res) => {
+  try {
+    const { pin, confPin, oldPin } = req.body.pin;
+
+    const user = await prisma.users.findUnique({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    const pinRegex = /^\d{6}$/;
+
+    if (pin !== confPin)
+      return res.status(400).send({
+        type: "Pin Not Match",
+        errorMessage: "Password Dan Confirm Password Tidak Sesuai",
+      });
+
+    if (!pinRegex.test(pin))
+      return res.status(400).send({
+        type: "Pin Invalid",
+        errorMessage: "Pin yang anda masukan tidak valid",
+      });
+
+    if (user.pin !== oldPin) {
+      return res.status(400).send({
+        type: "Pin Not Match",
+        errorMessage: "Pin lama yang anda masukan salah",
+      });
+    }
+
+    const hashPin = await argon2.hash(pin);
+    await prisma.users.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        pin: hashPin,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
 
 export const forgotPassword = async (req, res) => {};
