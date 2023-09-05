@@ -1,38 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2";
+import path from "path";
+import fs from "fs";
 
 const prisma = new PrismaClient();
 
-
-
 export const updateUser = async (req, res) => {
   try {
-    const user = await prisma.users.findUnique({
-      where: { id: req.params.id },
-    });
-    if (!user) return res.status(404).json({ msg: "User Tidak Di Temukan" });
-
-    let fileName = "";
-
-    if (req.files === null) {
-      fileName = user.profile_image;
-    } else {
-      const file = req.files.file;
-      const fileSize = file.data.length;
-      const ext = path.extname(file.name);
-      fileName = file.md5 + ext;
-      const allowedType = [".png", ".jpg", ".jpeg", ".webp"];
-      if (!allowedType.includes(ext.toLowerCase()))
-        return res.status(422).json({ msg: "Gambar yang anda masukan harus berformat (png, jpg, jpeg, webp)" });
-      if (fileSize > 2000000) return res.status(422).json({ msg: "Image must be less than 2mb" });
-      if (user.profile_image !== "default.jpg") {
-        const filePath = `./public/Users/profile-images/${user.profile_image}`;
-        fs.unlinkSync(filePath);
-      }
-      file.mv(`./public/Users/profile-images/${fileName}`, (err) => {
-        if (err) return res.status(500).json({ msg: err.message });
-      });
-    }
     const { name, email, phone_number, birth_date, gender, password, confPassword, pin } = req.body;
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const phoneNumberRegex = /^\d{10,14}$/;
@@ -117,3 +91,55 @@ export const updateUser = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
+
+export const updateProfileImages = async (req, res) => {
+  try {
+    const user = await prisma.users.findUnique({
+      where: {
+        id: req.params.id,
+      },
+    });
+    if (!user) return res.status(404).json({ msg: "User tidak ditemukan" });
+
+    const file = req.files.file;
+    const fileSize = file.data.length;
+    const ext = path.extname(file.name);
+    const fileName = file.md5 + ext;
+    const allowedType = [".png", ".jpg", ".jpeg", ".webp"];
+    const url = `${req.protocol}://${req.get("host")}/users/profile-images/${fileName}`;
+    if (!allowedType.includes(ext.toLowerCase()))
+      return res.status(422).json({ msg: "Gambar yang anda masukan harus berformat (png, jpg, jpeg, webp)" });
+    if (fileSize > 1000000) return res.status(422).json({ msg: "Ukuran gambar harus dibawah 1mb" });
+    if (user.profile_image !== "default.jpg") {
+      const url = user.profile_image;
+      const pattern = /\/([^\/]+)$/;
+      const matches = url.match(pattern);
+      const fileName = matches ? matches[1] : null;
+      const filePath = `./src/public/users/profile-images/${fileName}`;
+      fs.unlinkSync(filePath);
+    }
+    file.mv(`./src/public/users/profile-images/${fileName}`, async (err) => {
+      if (err) return res.status(500).json({ msg: err.message });
+    });
+
+    await prisma.users.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        profile_image: url,
+      },
+    });
+    res.status(200).json({ msg: "Profile Image Berhasil Di Perbarui..." });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const updatePassword = async (req, res) => {};
+
+export const updatePin = async (req, res) => {};
+
+export const updatePhoneNumber = async (req, res) => {};
+
+export const forgotPassword = async (req, res) => {};

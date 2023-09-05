@@ -3,8 +3,10 @@ import dotenv from "dotenv";
 import cors from "cors";
 import userGeneralRoutes from "./routes/users/UsersGeneral.js";
 import userAuthRoutes from "./routes/users/UsersAuth.js";
+import usermanagementRoutes from "./routes/users/UsersManagement.js";
 import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+import fileUpload from "express-fileupload";
 dotenv.config();
 
 const options = {
@@ -30,6 +32,8 @@ app.use(
     extended: true,
   })
 );
+app.use(fileUpload());
+app.use(express.static("./src/public"));
 
 app.use(
   cors({
@@ -40,6 +44,7 @@ app.use(
 
 app.use(userGeneralRoutes);
 app.use(userAuthRoutes);
+app.use(usermanagementRoutes);
 
 app.listen(port, () => {
   console.log(`server running perfectly at port ${port}`);
