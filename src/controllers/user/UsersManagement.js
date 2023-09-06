@@ -25,7 +25,7 @@ export const updateBasicData = async (req, res) => {
         gender: gender,
       },
     });
-    res.status(200).json("Akun Berhasil Di Perbarui...");
+    res.status(200).json({ msg: "Akun Berhasil Di Perbarui..." });
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
@@ -78,6 +78,7 @@ export const updateProfileImages = async (req, res) => {
 export const updateEmail = async (req, res) => {
   try {
     const email = req.body.email;
+    const password = req.body.password;
     const user = await prisma.users.findUnique({
       where: {
         id: req.params.id,
@@ -105,15 +106,20 @@ export const updateEmail = async (req, res) => {
         errorMessage: "Email Ini Sudah Terdaftar",
       });
 
-    await prisma.users.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        email: email,
-      },
-    });
-    res.status(200).json("Email Berhasil Di Perbarui...");
+    const match = await argon2.verify(user.password, password);
+    if (!match) {
+      res.status(400).json({ msg: "Password Yang Anda Masukan Salah" });
+    } else {
+      await prisma.users.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          email: email,
+        },
+      });
+      res.status(200).json({ msg: "Email Berhasil Di Perbarui..." });
+    }
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
@@ -122,6 +128,7 @@ export const updateEmail = async (req, res) => {
 export const updatePhoneNumber = async (req, res) => {
   try {
     const phone_number = req.body.phone_number;
+    const password = req.body.password;
 
     const user = await prisma.users.findUnique({
       where: {
@@ -151,15 +158,20 @@ export const updatePhoneNumber = async (req, res) => {
         errorMessage: "Nomor Hp Ini Sudah Terdaftar",
       });
 
-    await prisma.users.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        phone_number: phone_number,
-      },
-    });
-    res.status(200).json("Nomor Hp Berhasil Di Perbarui...");
+    const match = await argon2.verify(user.password, password);
+    if (!match) {
+      res.status(400).json({ msg: "Password Yang Anda Masukan Salah" });
+    } else {
+      await prisma.users.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          phone_number: phone_number,
+        },
+      });
+      res.status(200).json({ msg: "Nomor Hp Berhasil Di Perbarui..." });
+    }
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
@@ -188,23 +200,25 @@ export const updatePassword = async (req, res) => {
         errorMessage:
           "Panjang password minimal 8 karakter, yang berisikan huruf awal kapital, dan minimal harus memiliki satu simbol",
       });
-
-    if (user.password !== oldPassword) {
-      return res.status(400).send({
+    
+    const match = await argon2.verify(user.password, oldPassword);
+    if (!match) {
+      res.status(400).send({
         type: "Password Not Match",
         errorMessage: "Password lama yang anda masukan salah",
       });
+    } else {
+      const hashPassword = await argon2.hash(password);
+      await prisma.users.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          password: hashPassword,
+        },
+      });
+      res.status(200).json({ msg: "Password Berhasil Di Perbarui..." });
     }
-
-    const hashPassword = await argon2.hash(password);
-    await prisma.users.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        password: hashPassword,
-      },
-    });
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
@@ -234,22 +248,25 @@ export const updatePin = async (req, res) => {
         errorMessage: "Pin yang anda masukan tidak valid",
       });
 
-    if (user.pin !== oldPin) {
-      return res.status(400).send({
+    const match = await argon2.verify(user.pin, oldPin);
+    if (!match) {
+      res.status(400).send({
         type: "Pin Not Match",
         errorMessage: "Pin lama yang anda masukan salah",
       });
-    }
+    } else {
+      const hashPin = await argon2.hash(pin);
+      await prisma.users.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          pin: hashPin,
+        },
+      });
+      res.status(200).json({ msg: "Password Berhasil Di Perbarui..." });
 
-    const hashPin = await argon2.hash(pin);
-    await prisma.users.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        pin: hashPin,
-      },
-    });
+    }
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
